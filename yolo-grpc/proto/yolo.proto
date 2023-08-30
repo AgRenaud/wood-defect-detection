@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package yolo;
+
+enum ClassEnum {
+  LIVEL_KNOT = 0;
+  DEATH_KNOT = 1;
+  KNOT_MISSING = 2;
+  KNOT_WITH_CRACK = 3;
+  CRACK = 4;
+  QUARTZITY = 5;
+  RESIN = 6;
+  MARROW = 7;
+  BLUE_STAIN = 8;
+  OVERGROWN = 9;
+}
+
+message BoundingBox {
+  float x_min = 1;
+  float y_min = 2;
+  float x_max = 3;
+  float y_max = 4;
+}
+
+service Yolo{
+  rpc DetectObjects (DetectBatchRequest) returns (DetectBatchResponse) {}
+}
+
+message DetectBatchRequest {
+  repeated bytes batch = 1;
+}
+
+message DetectResponse {
+  repeated ObjectDetection objects = 1;
+}
+
+message DetectBatchResponse {
+  repeated DetectResponse requests = 1;
+}
+
+message ObjectDetection {
+  ClassEnum class = 1;
+  float confidence = 2;
+  BoundingBox bounding_box = 3;
+}

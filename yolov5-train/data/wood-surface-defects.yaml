@@ -1,0 +1,30 @@
+# YOLOv5 🚀 by Ultralytics, AGPL3.0 license
+# COCO128 dataset https://www.kaggle.com/ultralytics/coco128 (first 128 images from COCO train2017) by Ultralytics
+# Example usage: python train.py data coco128.yaml
+# parent
+# ├── yolov5
+# └── datasets
+#     └── coco128  ← downloads here (7 MB)
+
+
+# Train/val/test sets as 1) dir: path/to/imgs, 2) file: path/to/imgs.txt, or 3) list: [path/to/imgs1, path/to/imgs2, ..
+path: ../datasets/wood-surface-defects/  # dataset root dir
+train: ./train  # train images (relative to 'path')
+val: ./valid  # val images (relative to 'path')
+test: ./test # test images (optional)
+
+# Classes
+names:
+ 0: livel_knot
+ 1: death_know
+ 2: knot_missing
+ 3: knot_with_crack
+ 4: crack
+ 5: quartzity
+ 6: resin
+ 7: marrow
+ 8: blue_stain
+ 9: overgrown
+
+# Download script/URL (optional)
+download:
