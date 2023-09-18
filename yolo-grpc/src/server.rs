@@ -1,8 +1,14 @@
+use image::imageops;
+use image::load_from_memory;
+
+use image::ImageBuffer;
+use image::Rgb;
 use onnxruntime::environment::Environment;
 use onnxruntime::ndarray;
+
+use onnxruntime::tensor::OrtOwnedTensor;
 use onnxruntime::GraphOptimizationLevel;
 use onnxruntime::LoggingLevel;
-use onnxruntime::tensor::OrtOwnedTensor;
 use tonic::{transport::Server, Request, Response, Status};
 use yolo::yolo_server::{Yolo, YoloServer};
 use yolo::{
@@ -40,10 +46,14 @@ impl Yolo for YoloService {
             .expect("Unable to create onnx env.");
 
         let mut session = environment
-            .new_session_builder().expect("Unable to create onnx session")
-            .with_optimization_level(GraphOptimizationLevel::Basic).expect("Unable to set opts")
-            .with_number_threads(1).expect("Unable to set threads")
-            .with_model_from_file(&self.model_path).expect("Can't read onnx file;");
+            .new_session_builder()
+            .expect("Unable to create onnx session")
+            .with_optimization_level(GraphOptimizationLevel::Basic)
+            .expect("Unable to set opts")
+            .with_number_threads(1)
+            .expect("Unable to set threads")
+            .with_model_from_file(&self.model_path)
+            .expect("Can't read onnx file;");
 
         let mut input_tensors = Vec::new();
 
@@ -54,29 +64,43 @@ impl Yolo for YoloService {
         for image in batch_request.batch {
             let image_data = image;
 
-            // Preprocess the image_data if needed
-            // ...
+            let dynamic_image = load_from_memory(&image_data).expect("Failed to decode image");
+            let rgb_image: ImageBuffer<Rgb<u8>, Vec<u8>> = dynamic_image.to_rgb8();
 
-            // Create an input tensor for ONNX Runtime
+            let resized =
+                imageops::resize(&rgb_image, width, height, imageops::FilterType::CatmullRom);
+
+            let resized_data: Vec<f32> = resized
+                .pixels()
+                .map(|pixel| {
+                    let c = pixel.0;
+                    [
+                        f32::from(c[0]) / 255.0,
+                        f32::from(c[1]) / 255.0,
+                        f32::from(c[2]) / 255.0,
+                    ]
+                })
+                .flatten()
+                .collect();
+
+            let input_shape = (1, height as usize, width as usize, channels as usize);
             let input_tensor =
-                ndarray::Array::from_shape_vec((1, height, width, channels), image_data)
-                .expect("couldn'darray ");
+                ndarray::Array::from_shape_vec(input_shape, resized_data).expect("couldn'darray ");
             input_tensors.push(input_tensor);
         }
 
-        let input_tensors: Vec<ndarray::ArrayBase<ndarray::ViewRepr<&u8>, _>> = input_tensors.iter().map(|arr| arr.view()).collect();
-        // Create a single batched input tensor
+        let input_tensors: Vec<ndarray::ArrayBase<ndarray::ViewRepr<&f32>, _>> =
+            input_tensors.iter().map(|arr| arr.view()).collect();
         let batched_input_tensor = ndarray::stack(ndarray::Axis(0), input_tensors.as_slice())
             .expect("Failed to stack arrays");
 
         // Run inference using ONNX Runtime
         let inputs = vec![batched_input_tensor];
-        let output: Vec<OrtOwnedTensor<f32, _>> = session.run(inputs)
+        let output: Vec<OrtOwnedTensor<f32, _>> = session
+            .run(inputs)
             .expect("Inference gone wrong. We're so done.");
 
-        for (i, detect_request) in output.iter().enumerate() {
-            // Here, you would perform your YOLOv5 object detection using the image data
-            // and create ObjectDetection instances to populate the response.
+        for (_i, _detect_request) in output.iter().enumerate() {
 
             let mut object_detection = ObjectDetection::default();
             object_detection.class = ClassEnum::LivelKnot.into();
@@ -103,7 +127,9 @@ impl Yolo for YoloService {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "0.0.0.0:50051".parse()?;
-    let yolo_service = YoloService::new(String::from("../../yolov5-train/yolov5-baseline/yolov5s-208/weights/best.onnx"));
+    let yolo_service = YoloService::new(String::from(
+        "../../yolov5-train/yolov5-baseline/yolov5s-208/weights/best.onnx",
+    ));
 
     Server::builder()
         .add_service(YoloServer::new(yolo_service))

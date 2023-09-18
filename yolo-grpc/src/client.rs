@@ -10,13 +10,10 @@ pub mod yolo {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>>{
-    let mut client = YoloClient::connect("http://[::1]:50051")
-        .await?;
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let _client = YoloClient::connect("http://[::1]:50051").await?;
 
-    let request = tonic::Request::new(
-            DetectBatchRequest { batch: Vec::new() }
-        );
+    let _request = tonic::Request::new(DetectBatchRequest { batch: Vec::new() });
 
     Ok(())
 }
