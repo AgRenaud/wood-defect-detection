@@ -1,10 +1,12 @@
 import grpc
-
+import base64
 import yolo_pb2
 import yolo_pb2_grpc
 
+from typing import List
 
-def run():
+
+def run(image_path: List[str]):
 
     with grpc.insecure_channel("localhost:50051") as channel:
         stub = yolo_pb2_grpc.YoloStub(channel)
@@ -12,6 +14,11 @@ def run():
         # read list of images
         # transform each to bytes
         images = []
+
+        for p in image_path:
+            with open(p, "rb") as imageFile:
+                img = imageFile.read()
+                images.append(img)
 
         batch = yolo_pb2.DetectBatchRequest(
             batch=images
@@ -23,4 +30,8 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    run([
+        "../datasets/wood-surface-defects/valid/images/106600051.jpg",
+        "../datasets/wood-surface-defects/valid/images/106600052.jpg",
+        "../datasets/wood-surface-defects/valid/images/106600053.jpg",
+    ])

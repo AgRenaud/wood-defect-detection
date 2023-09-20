@@ -62,9 +62,14 @@ impl Yolo for YoloService {
         let channels = 3;
 
         for image in batch_request.batch {
-            let image_data = image;
+            let image_data = image.as_slice();
 
-            let dynamic_image = load_from_memory(&image_data).expect("Failed to decode image");
+            let dynamic_image = image::io::Reader::new(std::io::Cursor::new(image_data))
+                .with_guessed_format()
+                .expect("Unable to guess image format")
+                .decode()
+                .expect("Unable to decode image");
+
             let rgb_image: ImageBuffer<Rgb<u8>, Vec<u8>> = dynamic_image.to_rgb8();
 
             let resized =
@@ -127,8 +132,11 @@ impl Yolo for YoloService {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "0.0.0.0:50051".parse()?;
+
+    let model_path = "best.onnx";
+
     let yolo_service = YoloService::new(String::from(
-        "../../yolov5-train/yolov5-baseline/yolov5s-208/weights/best.onnx",
+        model_path,
     ));
 
     Server::builder()
