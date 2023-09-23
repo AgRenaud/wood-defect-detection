@@ -32,6 +32,4 @@ def run(image_path: List[str]):
 if __name__ == "__main__":
     run([
         "../datasets/wood-surface-defects/valid/images/106600051.jpg",
-        "../datasets/wood-surface-defects/valid/images/106600052.jpg",
-        "../datasets/wood-surface-defects/valid/images/106600053.jpg",
     ])

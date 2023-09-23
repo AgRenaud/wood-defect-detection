@@ -57,8 +57,8 @@ impl Yolo for YoloService {
 
         let mut input_tensors = Vec::new();
 
-        let height = 480;
-        let width = 480;
+        let height = 640;
+        let width = 640;
         let channels = 3;
 
         for image in batch_request.batch {
@@ -88,7 +88,7 @@ impl Yolo for YoloService {
                 .flatten()
                 .collect();
 
-            let input_shape = (1, height as usize, width as usize, channels as usize);
+            let input_shape = (channels as usize, height as usize, width as usize);
             let input_tensor =
                 ndarray::Array::from_shape_vec(input_shape, resized_data).expect("couldn'darray ");
             input_tensors.push(input_tensor);
