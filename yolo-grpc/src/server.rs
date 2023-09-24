@@ -5,7 +5,6 @@ use image::ImageBuffer;
 use image::Rgb;
 use onnxruntime::environment::Environment;
 use onnxruntime::ndarray;
-
 use onnxruntime::tensor::OrtOwnedTensor;
 use onnxruntime::GraphOptimizationLevel;
 use onnxruntime::LoggingLevel;
@@ -105,7 +104,25 @@ impl Yolo for YoloService {
             .run(inputs)
             .expect("Inference gone wrong. We're so done.");
 
-        for (_i, _detect_request) in output.iter().enumerate() {
+        let confidence_threshold = 0.7;
+
+        for (_i, output_tensor) in output.iter().enumerate() {
+            let conf_scores = output_tensor.index_axis(ndarray::Axis(2), 4); // Objectness scores
+            let class_scores = output_tensor.slice(ndarray::s![.., .., 5..]); // Class scores
+            let bbox = output_tensor.slice(ndarray::s![.., .., ..4]); // Bounding box coordinates
+
+            let mask = &conf_scores.mapv(|a| a > confidence_threshold); // gt(confidence_threshold);
+
+            println!("{:?}", mask);
+
+            // Doesn't work here, may need to implement
+            // NMS according to mask variable instead of
+            // having all the masked/filtered array.
+
+            // let conf_scores = conf_scores.masked(mask);
+            // let class_scores = class_scores.masked(mask);
+            // let bbox = bbox.masked(mask);
+
 
             let mut object_detection = ObjectDetection::default();
             object_detection.class = ClassEnum::LivelKnot.into();
